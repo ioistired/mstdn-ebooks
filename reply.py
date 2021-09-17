@@ -25,17 +25,23 @@ class ReplyBot:
 	async def process_notification(self, notification):
 		acct = "@" + notification['account']['acct']  # get the account's @
 		post_id = notification['status']['id']
-		context = await self.pleroma.status_context(post_id)
 
-		# check if we've already been participating in this thread
-		if self.check_thread_length(context):
-			return
-
-		content = self.extract_toot(notification['status']['content'])
-		if content in {'pin', 'unpin'}:
-			await self.process_command(context, notification, content)
+		try:
+			context = await self.pleroma.status_context(post_id)
+		except pleroma.BadResponse as exc:
+		    # just try again, hopefully we don't exhaust the call stack lol
+		    await self.process_notification(notification)
+		    return
 		else:
-			await self.reply(notification)
+			# check if we've already been participating in this thread
+			if self.check_thread_length(context):
+				return
+
+			content = self.extract_toot(notification['status']['content'])
+			if content in {'pin', 'unpin'}:
+				await self.process_command(context, notification, content)
+			else:
+				await self.reply(notification)
 
 	def check_thread_length(self, context) -> bool:
 		"""return whether the thread is too long to reply to"""
@@ -69,12 +75,12 @@ class ReplyBot:
 			await self.pleroma.react(post_id, '✅')
 
 	async def reply(self, notification):
-		toot = utils.make_toot(self.cfg)  # generate a toot
+		toot = await utils.make_post(self.cfg)  # generate a toot
 		await self.pleroma.reply(notification['status'], toot, cw=self.cfg['cw'])
 
 	@staticmethod
 	def extract_toot(toot):
-		text = utils.extract_toot(toot)
+		text = utils.extract_post_content(toot)
 		text = re.sub(r"^@\S+\s", r"", text)  # remove the initial mention
 		text = text.lower()  # treat text as lowercase for easier keyword matching (if this bot uses it)
 		return text
