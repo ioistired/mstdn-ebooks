@@ -22,16 +22,23 @@ class ReplyBot:
 			async for notification in self.pleroma.stream_mentions():
 				await self.process_notification(notification)
 
-	async def process_notification(self, notification):
+	async def process_notification(self, notification, retry_count=0):
 		acct = "@" + notification['account']['acct']  # get the account's @
 		post_id = notification['status']['id']
 
+		# catch HTTP 500 and backoff on requests
+		retry_count = retry_count + 1
 		try:
 			context = await self.pleroma.status_context(post_id)
 		except pleroma.BadResponse as exc:
-		    # just try again, hopefully we don't exhaust the call stack lol
-		    await self.process_notification(notification)
-		    return
+			if retry_count < 3:
+				await anyio.sleep(2**retry_count)
+				await self.process_notification(notification, retry_count)
+			else:
+				# failed too many times in a row, logging
+				print(f"Received HTTP 500 {retry_count} times in a row, aborting reply attempt.")
+			return
+
 		else:
 			# check if we've already been participating in this thread
 			if self.check_thread_length(context):

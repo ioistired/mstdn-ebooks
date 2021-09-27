@@ -80,10 +80,7 @@ class Pleroma:
 
 	async def status_context(self, id):
 		id = self._unpack_id(id)
-		try:
-			return await self.request('GET', f'/api/v1/statuses/{id}/context')
-		except BadResponse as exc:
-			raise exc
+		return await self.request('GET', f'/api/v1/statuses/{id}/context')
 
 	async def post(self, content, *, in_reply_to_id=None, cw=None, visibility=None):
 		if visibility not in {None, 'private', 'public', 'unlisted', 'direct'}:
