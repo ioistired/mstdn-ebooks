@@ -39,16 +39,15 @@ class ReplyBot:
 				print(f"Received HTTP 500 {retry_count} times in a row, aborting reply attempt.")
 			return
 
-		else:
-			# check if we've already been participating in this thread
-			if self.check_thread_length(context):
-				return
+		# check if we've already been participating in this thread
+		if self.check_thread_length(context):
+			return
 
-			content = self.extract_toot(notification['status']['content'])
-			if content in {'pin', 'unpin'}:
-				await self.process_command(context, notification, content)
-			else:
-				await self.reply(notification)
+		content = self.extract_toot(notification['status']['content'])
+		if content in {'pin', 'unpin'}:
+			await self.process_command(context, notification, content)
+		else:
+			await self.reply(notification)
 
 	def check_thread_length(self, context) -> bool:
 		"""return whether the thread is too long to reply to"""
