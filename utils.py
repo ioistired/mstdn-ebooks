@@ -60,7 +60,7 @@ class _RateLimitContextManager(contextlib.AbstractAsyncContextManager):
 		if resp.headers.get('X-RateLimit-Remaining') not in {'0', '1'}:
 			return resp
 
-		await sleep_until(datetime.fromisoformat(resp.headers['X-RateLimit-Reset']))
+		await sleep_until(datetime.fromisoformat(resp.headers['X-RateLimit-Reset'].replace('Z', '+00:00')))
 		await self._request_cm.__aexit__(*(None,)*3)
 		return await self.__aenter__()
 
