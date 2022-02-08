@@ -60,6 +60,9 @@ class _RateLimitContextManager(contextlib.AbstractAsyncContextManager):
 		if resp.headers.get('X-RateLimit-Remaining') not in {'0', '1'}:
 			return resp
 
+		# We replace Z with +00:00 as datetime.fromisoformat doesn't parse
+		# military-style offsets properly. Mastodon is known to return
+		# timestamps of these kinds.
 		await sleep_until(datetime.fromisoformat(resp.headers['X-RateLimit-Reset'].replace('Z', '+00:00')))
 		await self._request_cm.__aexit__(*(None,)*3)
 		return await self.__aenter__()
