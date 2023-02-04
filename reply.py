@@ -82,6 +82,10 @@ class ReplyBot:
 
 	async def reply(self, notification):
 		toot = await utils.make_post(self.cfg)  # generate a toot
+		if self.cfg['strip_paired_punctuation']:
+			toot = PAIRED_PUNCTUATION.sub("", toot)
+		toot = toot.replace("@", "@\u200b")  # sanitize mentions
+		toot = utils.remove_mentions(self.cfg, toot)
 		await self.pleroma.reply(notification['status'], toot, cw=self.cfg['cw'])
 
 	@staticmethod
